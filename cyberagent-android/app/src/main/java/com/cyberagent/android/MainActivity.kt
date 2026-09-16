@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
 private fun CyberAgentScreen() {
     var status by remember { mutableStateOf("Gotowy do skanowania") }
     var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     MaterialTheme {
         Column(
@@ -41,9 +43,11 @@ private fun CyberAgentScreen() {
             Button(enabled = !busy, onClick = {
                 busy = true
                 status = "Sprawdzanie backendu…"
-                // Simple connectivity check; full scanner follows in the next stage.
-                LaunchedEffect(Unit) { }
-            }) { Text("Sprawdź Threat Feed") }
+                scope.launch {
+                    status = if (checkBackend()) "Backend ONLINE ✓" else "Backend OFFLINE"
+                    busy = false
+                }
+            }) { Text("Sprawdź backend") }
         }
     }
 }
