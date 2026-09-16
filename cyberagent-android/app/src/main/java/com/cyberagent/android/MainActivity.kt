@@ -13,6 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -22,7 +26,17 @@ import java.net.URL
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        scheduleBackgroundScan()
         setContent { CyberAgentScreen() }
+    }
+
+    private fun scheduleBackgroundScan() {
+        val request = PeriodicWorkRequestBuilder<ScanWorker>(12, TimeUnit.HOURS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "cyberagent_periodic_scan",
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
     }
 }
 
@@ -42,12 +56,15 @@ private fun CyberAgentScreen() {
             Text(status)
             Button(enabled = !busy, onClick = {
                 busy = true
-                status = "Sprawdzanie backendu…"
+                status = "Skanowanie aplikacji…"
                 scope.launch {
-                    status = if (checkBackend()) "Backend ONLINE ✓" else "Backend OFFLINE"
+                    val result = withContext(Dispatchers.IO) { AppScanner(androidx.compose.ui.platform.LocalContext.current).scan() }
+                    val high = result.count { it.risk == RiskLevel.HIGH }
+                    val review = result.count { it.risk == RiskLevel.REVIEW }
+                    status = "Aplikacje: ${result.size}\nHIGH: $high\nREVIEW: $review\nSAFE: ${result.size - high - review}"
                     busy = false
                 }
-            }) { Text("Sprawdź backend") }
+            }) { Text("Skanuj aplikacje") }
         }
     }
 }
