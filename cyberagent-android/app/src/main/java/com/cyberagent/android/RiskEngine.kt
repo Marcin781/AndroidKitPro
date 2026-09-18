@@ -9,7 +9,6 @@ object RiskEngine {
         "android.permission.REQUEST_INSTALL_PACKAGES",
         "android.permission.SYSTEM_ALERT_WINDOW"
     )
-
     private val reviewSignals = setOf(
         "android.permission.READ_SMS",
         "android.permission.RECEIVE_SMS",
@@ -25,8 +24,8 @@ object RiskEngine {
         val review = permissions.filter { it in reviewSignals }
         val reasons = buildList {
             if (isSystemApp) add("Aplikacja systemowa — kontekst, nie dowód zaufania")
-            if (high.isNotEmpty()) add("Wrażliwe uprawnienia systemowe: ${'${'}high.size}")
-            if (review.isNotEmpty()) add("Uprawnienia wymagające przeglądu: ${'${'}review.size}")
+            if (high.isNotEmpty()) add("Wrażliwe uprawnienia systemowe: ${high.size}")
+            if (review.isNotEmpty()) add("Uprawnienia wymagające przeglądu: ${review.size}")
             if (packageName.startsWith("com.google.") || packageName.startsWith("com.android.")) add("Schemat pakietu systemowego/Google")
         }
         val level = when {
