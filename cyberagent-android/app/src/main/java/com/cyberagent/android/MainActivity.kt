@@ -38,6 +38,8 @@ class MainActivity : ComponentActivity() {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 42)
         }
     }
+    private fun scheduleBackgroundScan() {
+        val request = PeriodicWorkRequestBuilder<ScanWorker>(12, TimeUnit.HOURS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "cyberagent_periodic_scan", ExistingPeriodicWorkPolicy.KEEP, request
         )
