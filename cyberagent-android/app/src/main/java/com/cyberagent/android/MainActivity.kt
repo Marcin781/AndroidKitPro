@@ -60,6 +60,22 @@ private fun CyberAgentScreen() {
             Text("Defensywny agent bezpieczeństwa Android")
             Text(status)
             Text(coach)
+            var networkEnabled by remember { mutableStateOf(false) }
+            Button(onClick = {
+                val intent = NetworkMonitorController.prepare(context)
+                if (intent != null) {
+                    networkEnabled = false
+                    startActivityForResult(intent, 43)
+                } else {
+                    NetworkMonitorController.start(context)
+                    networkEnabled = true
+                }
+            }) { Text(if (networkEnabled) "Monitoring sieci aktywny" else "Włącz monitoring sieci") }
+            if (networkEnabled) {
+                OutlinedButton(onClick = { NetworkMonitorController.stop(context); networkEnabled = false }) {
+                    Text("Wyłącz monitoring sieci")
+                }
+            }
             Button(enabled = !busy, onClick = {
                 busy = true
                 status = "Skanowanie aplikacji i obliczanie SHA-256…"
