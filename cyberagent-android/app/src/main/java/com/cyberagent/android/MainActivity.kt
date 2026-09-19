@@ -1,5 +1,7 @@
 package com.cyberagent.android
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,8 +26,15 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestNotificationPermission()
         scheduleBackgroundScan()
         setContent { CyberAgentScreen() }
+    }
+    private fun requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 42)
+        }
     }
     private fun scheduleBackgroundScan() {
         val request = PeriodicWorkRequestBuilder<ScanWorker>(12, TimeUnit.HOURS).build()
@@ -62,8 +71,9 @@ private fun CyberAgentScreen() {
                         history = ScanResultStore.loadHistory(context)
                         val high = result.count { it.risk == RiskLevel.HIGH }
                         val review = result.count { it.risk == RiskLevel.REVIEW }
-                        status = "Aplikacje: ${result.size} • HIGH: $high • REVIEW: $review • SAFE: ${result.size - high - review}"
+                        status = "Aplikacje: ${result.size} • HIGH: ${high} • REVIEW: ${review} • SAFE: ${result.size - high - review}"
                         coach = "Cyber Coach: ${CyberCoach.advice(result)}"
+                        ThreatNotification.showHighRisk(context, high)
                     } catch (e: Exception) {
                         status = "Błąd skanowania: ${e.message ?: "nieznany błąd"}"
                     } finally { busy = false }

@@ -9,7 +9,8 @@ class ScanWorker(appContext: Context, workerParams: WorkerParameters) : Coroutin
     override suspend fun doWork(): Result = try {
         val findings = AppScanner(applicationContext).scan()
         ScanResultStore.save(applicationContext, findings)
-        ThreatFeedClient.fetch()
+        val high = findings.count { it.risk == RiskLevel.HIGH }
+        ThreatNotification.showHighRisk(applicationContext, high)
         Result.success()
     } catch (_: Exception) {
         Result.retry()
