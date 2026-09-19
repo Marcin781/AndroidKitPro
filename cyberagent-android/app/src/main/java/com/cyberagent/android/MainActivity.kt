@@ -71,11 +71,11 @@ private fun CyberAgentScreen() {
                         history = ScanResultStore.loadHistory(context)
                         val high = result.count { it.risk == RiskLevel.HIGH }
                         val review = result.count { it.risk == RiskLevel.REVIEW }
-                        status = "Aplikacje: \${result.size} • HIGH: \${high} • REVIEW: \${review} • SAFE: \${result.size - high - review}"
-                        coach = "Cyber Coach: \${CyberCoach.advice(result)}"
+                        status = "Aplikacje: ${result.size} • HIGH: ${high} • REVIEW: ${review} • SAFE: ${result.size - high - review}"
+                        coach = "Cyber Coach: ${CyberCoach.advice(result)}"
                         ThreatNotification.showHighRisk(context, high)
                     } catch (e: Exception) {
-                        status = "Błąd skanowania: \${e.message ?: "nieznany błąd"}"
+                        status = "Błąd skanowania: ${e.message ?: "nieznany błąd"}"
                     } finally { busy = false }
                 }
             }) { Text(if (busy) "Skanowanie…" else "Skanuj aplikacje") }
@@ -93,12 +93,12 @@ private fun CyberAgentScreen() {
         selected?.let { finding ->
             AlertDialog(onDismissRequest = { selected = null }, title = { Text(finding.label) },
                 text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Ryzyko: \${finding.risk}")
-                    Text("Pakiet: \${finding.packageName}")
-                    Text("Wersja: \${finding.versionName ?: "brak"}")
-                    Text("SHA-256: \${finding.apkSha256 ?: "niedostępny"}")
-                    Text("Powody: \${finding.reasons.joinToString("; ")}")
-                    Text("Uprawnienia: \${finding.permissions.size}")
+                    Text("Ryzyko: ${finding.risk}")
+                    Text("Pakiet: ${finding.packageName}")
+                    Text("Wersja: ${finding.versionName ?: "brak"}")
+                    Text("SHA-256: ${finding.apkSha256 ?: "niedostępny"}")
+                    Text("Powody: ${finding.reasons.joinToString("; ")}")
+                    Text("Uprawnienia: ${finding.permissions.size}")
                 }},
                 confirmButton = { TextButton(onClick = { selected = null }) { Text("Zamknij") } })
         }
@@ -111,7 +111,7 @@ private fun ScanHistoryRow(item: ScanResultStore.Summary) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp)) {
             Text(date, style = MaterialTheme.typography.labelMedium)
-            Text("Aplikacje: \${item.apps} • HIGH: \${item.high} • REVIEW: \${item.review} • SAFE: \${item.safe}")
+            Text("Aplikacje: ${item.apps} • HIGH: ${item.high} • REVIEW: ${item.review} • SAFE: ${item.safe}")
         }
     }
 }
