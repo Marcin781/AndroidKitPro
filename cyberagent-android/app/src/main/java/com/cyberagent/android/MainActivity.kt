@@ -3,6 +3,7 @@ package com.cyberagent.android
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -23,16 +24,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-    private val vpnPermissionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) NetworkMonitorController.start(this)
-    }
-
-    fun requestNetworkMonitoring() {
-        val intent = NetworkMonitorController.prepare(this)
-        if (intent != null) vpnPermissionLauncher.launch(intent) else NetworkMonitorController.start(this)
-    }
-
 class MainActivity : ComponentActivity() {
+    private val vpnPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            NetworkMonitorController.start(this)
+        }
+    }
+
+    private fun requestNetworkMonitoring() {
+        val intent = NetworkMonitorController.prepare(this)
+        if (intent != null) vpnPermissionLauncher.launch(intent)
+        else NetworkMonitorController.start(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
@@ -77,9 +83,6 @@ private fun CyberAgentScreen() {
                     networkEnabled = false
                     activity?.requestNetworkMonitoring()
                 } else {
-                    NetworkMonitorController.start(context)
-                    networkEnabled = true
-                }
                     NetworkMonitorController.start(context)
                     networkEnabled = true
                 }
