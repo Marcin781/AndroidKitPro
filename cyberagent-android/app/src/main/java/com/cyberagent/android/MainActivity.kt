@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestNetworkMonitoring() {
+    fun requestNetworkMonitoring() {
         val intent = NetworkMonitorController.prepare(this)
         if (intent != null) vpnPermissionLauncher.launch(intent)
         else NetworkMonitorController.start(this)
