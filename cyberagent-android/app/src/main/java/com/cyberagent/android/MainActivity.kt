@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
+    private val vpnPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            NetworkMonitorController.start(this)
+        }
+    }
+
+    fun requestNetworkMonitoring() {
+        val intent = NetworkMonitorController.prepare(this)
+        if (intent != null) vpnPermissionLauncher.launch(intent)
+        else NetworkMonitorController.start(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
@@ -62,10 +77,11 @@ private fun CyberAgentScreen() {
             Text(coach)
             var networkEnabled by remember { mutableStateOf(false) }
             Button(onClick = {
+                val activity = context as? MainActivity
                 val intent = NetworkMonitorController.prepare(context)
                 if (intent != null) {
                     networkEnabled = false
-                    startActivityForResult(intent, 43)
+                    activity?.requestNetworkMonitoring()
                 } else {
                     NetworkMonitorController.start(context)
                     networkEnabled = true
