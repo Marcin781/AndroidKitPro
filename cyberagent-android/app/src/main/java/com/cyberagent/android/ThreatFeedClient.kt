@@ -11,7 +11,9 @@ object ThreatFeedClient {
     data class ThreatFeed(
         val version: Int,
         val indicators: Set<String>
-    )
+    ) {
+        val indicatorCount: Int get() = indicators.size
+    }
 
     fun fetch(): ThreatFeed? = runCatching {
         val connection = (URL(FEED_URL).openConnection() as HttpURLConnection)
