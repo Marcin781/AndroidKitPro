@@ -14,6 +14,25 @@ object ThreatNotification {
     private const val CHANNEL_NAME = "CyberAgent — zagrożenia"
     private const val NOTIFICATION_ID = 1001
 
+    fun showNetworkIoc(context: Context, match: NetworkIocMatcher.Match) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH)
+        )
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setContentTitle("CyberAgent: IOC dopasowany")
+            .setContentText("${match.indicator.type}: ${match.indicator.value}")
+            .setStyle(NotificationCompat.BigTextStyle().bigText(match.reason))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID + 1, notification)
+    }
+
     fun showHighRisk(context: Context, count: Int) {
         if (count <= 0) return
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
