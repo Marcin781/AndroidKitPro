@@ -1,0 +1,84 @@
+package com.cyberagent.android
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+
+/**
+ * Safe network-state telemetry.
+ *
+ * Reads connection metadata exposed by ConnectivityManager only.
+ * It does not create a VPN, intercept packets, inspect payloads, or alter traffic.
+ */
+object NetworkTelemetryCollector {
+    private var connectivityManager: ConnectivityManager? = null
+    private var callback: ConnectivityManager.NetworkCallback? = null
+
+    fun start(context: Context) {
+        if (callback != null) return
+        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return
+        connectivityManager = manager
+
+        refresh(context, manager)
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = refresh(context, manager)
+            override fun onLost(network: Network) = refresh(context, manager)
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) =
+                refresh(context, manager)
+        }
+
+        runCatching {
+            manager.registerDefaultNetworkCallback(networkCallback)
+            callback = networkCallback
+        }.onFailure {
+            NetworkMonitorStore.setStopped(context)
+        }
+    }
+
+    fun stop(context: Context) {
+        val manager = connectivityManager
+        val registered = callback
+        if (manager != null && registered != null) {
+            runCatching { manager.unregisterNetworkCallback(registered) }
+        }
+        callback = null
+        connectivityManager = null
+        NetworkMonitorStore.setStopped(context)
+    }
+
+    private fun refresh(context: Context, manager: ConnectivityManager) {
+        val networks = runCatching { manager.allNetworks.toList() }.getOrDefault(emptyList())
+        var transport = "NONE"
+        var validated = false
+        var metered = false
+        var vpnPresent = false
+
+        for (network in networks) {
+            val caps = manager.getNetworkCapabilities(network) ?: continue
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) vpnPresent = true
+            if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) validated = true
+            if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) metered = true
+
+            if (transport == "NONE") {
+                transport = when {
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WIFI"
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "CELLULAR"
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ETHERNET"
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) -> "BLUETOOTH"
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "VPN"
+                    else -> "OTHER"
+                }
+            }
+        }
+
+        NetworkMonitorStore.save(
+            context = context,
+            transport = transport,
+            validated = validated,
+            metered = !metered,
+            vpnPresent = vpnPresent,
+            activeNetworks = networks.size
+        )
+    }
+}
