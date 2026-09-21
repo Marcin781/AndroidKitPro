@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,24 +20,11 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
-    private val vpnPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            NetworkMonitorController.start(this)
-        }
-    }
-
-    fun requestNetworkMonitoring() {
-        val intent = NetworkMonitorController.prepare(this)
-        if (intent != null) vpnPermissionLauncher.launch(intent)
-        else NetworkMonitorController.start(this)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestNotificationPermission()
@@ -68,30 +54,71 @@ private fun CyberAgentScreen() {
     var findings by remember { mutableStateOf<List<AppScanner.AppFinding>>(emptyList()) }
     var history by remember { mutableStateOf(ScanResultStore.loadHistory(context)) }
     var selected by remember { mutableStateOf<AppScanner.AppFinding?>(null) }
+    var networkEnabled by remember { mutableStateOf(NetworkMonitorStore.isRunning(context)) }
+    var networkSnapshot by remember { mutableStateOf(NetworkMonitorStore.load(context)) }
+    var alerts by remember { mutableStateOf(NetworkAlertStore.load(context)) }
+    var feedCount by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        feedCount = withContext(Dispatchers.IO) { ThreatFeedClient.fetch()?.indicatorCount }
+    }
+
+    LaunchedEffect(networkEnabled) {
+        while (networkEnabled) {
+            networkSnapshot = NetworkMonitorStore.load(context)
+            delay(2000)
+        }
+    }
     MaterialTheme {
         Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("CyberAgent", style = MaterialTheme.typography.headlineMedium)
             Text("Defensywny agent bezpieczeństwa Android")
             Text(status)
             Text(coach)
-            var networkEnabled by remember { mutableStateOf(false) }
             Button(onClick = {
-                val activity = context as? MainActivity
-                val intent = NetworkMonitorController.prepare(context)
-                if (intent != null) {
+                if (networkEnabled) {
+                    NetworkMonitorController.stop(context)
                     networkEnabled = false
-                    activity?.requestNetworkMonitoring()
                 } else {
                     NetworkMonitorController.start(context)
                     networkEnabled = true
+                    status = "Monitoring sieci uruchomiony — tylko metadane połączenia"
                 }
-            }) { Text(if (networkEnabled) "Monitoring sieci aktywny" else "Włącz monitoring sieci") }
-            if (networkEnabled) {
-                OutlinedButton(onClick = { NetworkMonitorController.stop(context); networkEnabled = false }) {
-                    Text("Wyłącz monitoring sieci")
+            }) {
+                Text(if (networkEnabled) "Wyłącz monitoring sieci" else "Włącz monitoring sieci")
+            }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("IOC / Threat Intelligence", style = MaterialTheme.typography.titleMedium)
+                    Text(if (feedCount == null) "Feed: niedostępny" else "IOC w feedzie: $feedCount")
+                    Text("Dopasowanie: tylko dokładne IOC — bez automatycznego blokowania")
                 }
             }
+            networkSnapshot?.let { snapshot ->
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Telemetria sieci", style = MaterialTheme.typography.titleMedium)
+                        Text("Transport: ${snapshot.transport}")
+                        Text("Internet zweryfikowany: ${if (snapshot.validated) "tak" else "nie"}")
+                        Text("Sieć taryfikowana: ${if (snapshot.metered) "tak" else "nie"}")
+                        Text("VPN obecny: ${if (snapshot.vpnPresent) "tak" else "nie"}")
+                        Text("Aktywne sieci: ${snapshot.activeNetworks}")
+                    }
+                }
+            }
+            if (alerts.isNotEmpty()) {
+                Text("Ostatnie alerty IOC", style = MaterialTheme.typography.titleMedium)
+                alerts.take(5).forEach { alert ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text("${alert.type}: ${alert.indicator}", style = MaterialTheme.typography.bodyMedium)
+                            Text(alert.reason, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
             Button(enabled = !busy, onClick = {
                 busy = true
                 status = "Skanowanie aplikacji i obliczanie SHA-256…"
