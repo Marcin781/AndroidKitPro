@@ -24,9 +24,9 @@ object NetworkTelemetryCollector {
         refresh(appContext, manager)
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) = refresh(appContext, manager)
-            override fun onLost(network: Network) = refresh(context, manager)
+            override fun onLost(network: Network) = refresh(appContext, manager)
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) =
-                refresh(context, manager)
+                refresh(appContext, manager)
         }
 
         runCatching {
@@ -53,7 +53,7 @@ object NetworkTelemetryCollector {
         val networks = runCatching { manager.allNetworks.toList() }.getOrDefault(emptyList())
         var transport = "NONE"
         var validated = false
-        var metered = manager.isActiveNetworkMetered
+        val metered = manager.isActiveNetworkMetered
         var vpnPresent = false
 
         for (network in networks) {
@@ -73,6 +73,7 @@ object NetworkTelemetryCollector {
             }
         }
 
+        val timestamp = System.currentTimeMillis()
         NetworkMonitorStore.save(
             context = context,
             transport = transport,
@@ -80,6 +81,17 @@ object NetworkTelemetryCollector {
             metered = metered,
             vpnPresent = vpnPresent,
             activeNetworks = networks.size
+        )
+        NetworkTelemetryHistoryStore.record(
+            context,
+            NetworkTelemetryHistoryStore.Event(
+                timestamp = timestamp,
+                transport = transport,
+                validated = validated,
+                metered = metered,
+                vpnPresent = vpnPresent,
+                activeNetworks = networks.size
+            )
         )
     }
 }
