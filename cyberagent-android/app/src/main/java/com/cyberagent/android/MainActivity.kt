@@ -78,12 +78,12 @@ private fun CyberAgentScreen() {
             Text(coach)
             Button(onClick = {
                 if (networkEnabled) {
-                    NetworkMonitorController.stop(context)
+                    NetworkTelemetryCollector.stop(context)
                     networkEnabled = false
                 } else {
-                    NetworkMonitorController.start(context)
+                    NetworkTelemetryCollector.start(context)
                     networkEnabled = true
-                    status = "Monitoring sieci uruchomiony — tylko metadane połączenia"
+                    status = "Monitoring sieci uruchomiony — tylko telemetria ConnectivityManager"
                 }
             }) {
                 Text(if (networkEnabled) "Wyłącz monitoring sieci" else "Włącz monitoring sieci")
