@@ -16,11 +16,12 @@ object NetworkTelemetryCollector {
     private var callback: ConnectivityManager.NetworkCallback? = null
 
     fun start(context: Context) {
+        val appContext = context.applicationContext
         if (callback != null) return
         val manager = context.getSystemService(ConnectivityManager::class.java) ?: return
         connectivityManager = manager
 
-        refresh(context, manager)
+        refresh(appContext, manager)
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) = refresh(context, manager)
             override fun onLost(network: Network) = refresh(context, manager)
@@ -32,7 +33,7 @@ object NetworkTelemetryCollector {
             manager.registerDefaultNetworkCallback(networkCallback)
             callback = networkCallback
         }.onFailure {
-            NetworkMonitorStore.setStopped(context)
+            NetworkMonitorStore.setStopped(appContext)
         }
     }
 
@@ -51,14 +52,13 @@ object NetworkTelemetryCollector {
         val networks = runCatching { manager.allNetworks.toList() }.getOrDefault(emptyList())
         var transport = "NONE"
         var validated = false
-        var metered = false
+        var metered = manager.isActiveNetworkMetered
         var vpnPresent = false
 
         for (network in networks) {
             val caps = manager.getNetworkCapabilities(network) ?: continue
             if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) vpnPresent = true
             if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) validated = true
-            if (caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) metered = true
 
             if (transport == "NONE") {
                 transport = when {
@@ -76,7 +76,7 @@ object NetworkTelemetryCollector {
             context = context,
             transport = transport,
             validated = validated,
-            metered = !metered,
+            metered = metered,
             vpnPresent = vpnPresent,
             activeNetworks = networks.size
         )
