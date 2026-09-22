@@ -18,12 +18,12 @@ object NetworkTelemetryCollector {
     fun start(context: Context) {
         val appContext = context.applicationContext
         if (callback != null) return
-        val manager = context.getSystemService(ConnectivityManager::class.java) ?: return
+        val manager = appContext.getSystemService(ConnectivityManager::class.java) ?: return
         connectivityManager = manager
 
         refresh(appContext, manager)
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) = refresh(context, manager)
+            override fun onAvailable(network: Network) = refresh(appContext, manager)
             override fun onLost(network: Network) = refresh(context, manager)
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) =
                 refresh(context, manager)
@@ -38,6 +38,7 @@ object NetworkTelemetryCollector {
     }
 
     fun stop(context: Context) {
+        val appContext = context.applicationContext
         val manager = connectivityManager
         val registered = callback
         if (manager != null && registered != null) {
@@ -45,7 +46,7 @@ object NetworkTelemetryCollector {
         }
         callback = null
         connectivityManager = null
-        NetworkMonitorStore.setStopped(context)
+        NetworkMonitorStore.setStopped(appContext)
     }
 
     private fun refresh(context: Context, manager: ConnectivityManager) {
