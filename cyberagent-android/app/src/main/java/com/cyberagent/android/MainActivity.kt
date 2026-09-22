@@ -56,6 +56,7 @@ private fun CyberAgentScreen() {
     var selected by remember { mutableStateOf<AppScanner.AppFinding?>(null) }
     var networkEnabled by remember { mutableStateOf(NetworkMonitorStore.isRunning(context)) }
     var networkSnapshot by remember { mutableStateOf(NetworkMonitorStore.load(context)) }
+    var networkHistory by remember { mutableStateOf(NetworkTelemetryHistoryStore.load(context)) }
     var alerts by remember { mutableStateOf(NetworkAlertStore.load(context)) }
     var feedCount by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
@@ -67,6 +68,8 @@ private fun CyberAgentScreen() {
     LaunchedEffect(networkEnabled) {
         while (networkEnabled) {
             networkSnapshot = NetworkMonitorStore.load(context)
+            networkHistory = NetworkTelemetryHistoryStore.load(context)
+            alerts = NetworkAlertStore.load(context)
             delay(2000)
         }
     }
@@ -107,6 +110,23 @@ private fun CyberAgentScreen() {
                     }
                 }
             }
+            if (networkHistory.isNotEmpty()) {
+                Text("Historia zmian sieci", style = MaterialTheme.typography.titleMedium)
+                networkHistory.take(5).forEach { event ->
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text("${event.transport} • sieci: ${event.activeNetworks}")
+                            Text(
+                                "Zweryfikowana: ${if (event.validated) "tak" else "nie"} • " +
+                                    "taryfikowana: ${if (event.metered) "tak" else "nie"} • " +
+                                    "VPN: ${if (event.vpnPresent) "tak" else "nie"}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+
             if (alerts.isNotEmpty()) {
                 Text("Ostatnie alerty IOC", style = MaterialTheme.typography.titleMedium)
                 alerts.take(5).forEach { alert ->
