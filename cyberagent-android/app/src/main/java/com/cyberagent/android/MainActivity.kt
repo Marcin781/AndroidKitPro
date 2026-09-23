@@ -158,14 +158,31 @@ private fun CyberAgentScreen() {
                     } finally { busy = false }
                 }
             }) { Text(if (busy) "Skanowanie…" else "Skanuj aplikacje") }
-            if (history.isNotEmpty()) {
-                Text("Historia skanów", style = MaterialTheme.typography.titleMedium)
-                LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(history.take(10)) { item -> ScanHistoryRow(item) }
-                }
-            } else if (findings.isNotEmpty()) {
-                LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(findings, key = { it.packageName }) { finding -> AppFindingCard(finding) { selected = finding } }
+            if (findings.isNotEmpty() || history.isNotEmpty()) {
+                LazyColumn(
+                    Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (findings.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Wyniki bieżącego skanu",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        items(findings, key = { it.packageName }) { finding ->
+                            AppFindingCard(finding) { selected = finding }
+                        }
+                    }
+                    if (history.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Historia skanów",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        items(history.take(10)) { item -> ScanHistoryRow(item) }
+                    }
                 }
             }
         }
