@@ -13,7 +13,7 @@ IOC_FEED = {
 
 @app.get("/")
 def root():
-    return jsonify({"service": "CyberAgent Backend", "version": "0.1.0", "status": "ok"})
+    return jsonify({"service": "CyberAgent Backend", "version": "0.2.0", "status": "ok"})
 
 @app.get("/health")
 def health():
