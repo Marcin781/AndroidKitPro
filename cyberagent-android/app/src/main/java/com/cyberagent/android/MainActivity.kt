@@ -6,6 +6,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -73,131 +78,198 @@ private fun CyberAgentScreen() {
             delay(2000)
         }
     }
-    MaterialTheme {
-        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("CyberAgent", style = MaterialTheme.typography.headlineMedium)
-            Text("Defensywny agent bezpieczeństwa Android")
-            Text(status)
-            Text(coach)
-            Button(onClick = {
-                if (networkEnabled) {
-                    NetworkTelemetryCollector.stop(context)
-                    networkEnabled = false
-                } else {
-                    NetworkTelemetryCollector.start(context)
-                    networkEnabled = true
-                    status = "Monitoring sieci uruchomiony — tylko telemetria ConnectivityManager"
-                }
-            }) {
-                Text(if (networkEnabled) "Wyłącz monitoring sieci" else "Włącz monitoring sieci")
-            }
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("IOC / Threat Intelligence", style = MaterialTheme.typography.titleMedium)
-                    Text(if (feedCount == null) "Feed: niedostępny" else "IOC w feedzie: $feedCount")
-                    Text("Dopasowanie: tylko dokładne IOC — bez automatycznego blokowania")
+
+    val background = Brush.verticalGradient(
+        listOf(Color(0xFF07111F), Color(0xFF0B1830), Color(0xFF10152A))
+    )
+
+    Box(Modifier.fillMaxSize().background(background)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("CYBERAGENT", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF7DD3FC))
+                    Text("Defensywny agent bezpieczeństwa Android", color = Color(0xFFD7E3F4))
                 }
             }
-            networkSnapshot?.let { snapshot ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Telemetria sieci", style = MaterialTheme.typography.titleMedium)
-                        Text("Transport: ${snapshot.transport}")
-                        Text("Internet zweryfikowany: ${if (snapshot.validated) "tak" else "nie"}")
-                        Text("Sieć taryfikowana: ${if (snapshot.metered) "tak" else "nie"}")
-                        Text("VPN obecny: ${if (snapshot.vpnPresent) "tak" else "nie"}")
-                        Text("Aktywne sieci: ${snapshot.activeNetworks}")
+
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF13233D)),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("STATUS", style = MaterialTheme.typography.labelLarge, color = Color(0xFF38BDF8))
+                        Text(status, color = Color.White)
+                        Text(coach, color = Color(0xFFCBD5E1), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
-            if (networkHistory.isNotEmpty()) {
-                Text("Historia zmian sieci", style = MaterialTheme.typography.titleMedium)
-                networkHistory.take(5).forEach { event ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text("${event.transport} • sieci: ${event.activeNetworks}")
-                            Text(
-                                "Zweryfikowana: ${if (event.validated) "tak" else "nie"} • " +
-                                    "taryfikowana: ${if (event.metered) "tak" else "nie"} • " +
-                                    "VPN: ${if (event.vpnPresent) "tak" else "nie"}",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+
+            item {
+                Button(
+                    onClick = {
+                        if (networkEnabled) {
+                            NetworkTelemetryCollector.stop(context)
+                            networkEnabled = false
+                            status = "Monitoring sieci wyłączony"
+                        } else {
+                            NetworkTelemetryCollector.start(context)
+                            networkEnabled = true
+                            status = "Monitoring sieci uruchomiony — tylko telemetria"
                         }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (networkEnabled) Color(0xFFB91C1C) else Color(0xFF2563EB)
+                    )
+                ) {
+                    Text(if (networkEnabled) "Wyłącz monitoring sieci" else "Włącz monitoring sieci")
+                }
+            }
+
+            item {
+                DashboardCard("IOC / Threat Intelligence", Color(0xFFA78BFA)) {
+                    Text(if (feedCount == null) "Feed: niedostępny" else "IOC w feedzie: ${feedCount}", color = Color.White)
+                    Text("Dopasowanie: dokładne IOC • bez automatycznego blokowania",
+                        style = MaterialTheme.typography.bodySmall, color = Color(0xFFCBD5E1))
+                }
+            }
+
+            networkSnapshot?.let { snapshot ->
+                item {
+                    DashboardCard("Telemetria sieci", Color(0xFF22D3EE)) {
+                        Text("Transport: ${snapshot.transport}", color = Color.White)
+                        Text("Internet zweryfikowany: ${if (snapshot.validated) "tak" else "nie"}", color = Color(0xFFD7E3F4))
+                        Text("Sieć taryfikowana: ${if (snapshot.metered) "tak" else "nie"}", color = Color(0xFFD7E3F4))
+                        Text("VPN obecny: ${if (snapshot.vpnPresent) "tak" else "nie"}", color = Color(0xFFD7E3F4))
+                        Text("Aktywne sieci: ${snapshot.activeNetworks}", color = Color(0xFFD7E3F4))
+                    }
+                }
+            }
+
+            if (networkHistory.isNotEmpty()) {
+                item { SectionTitle("Historia zmian sieci", Color(0xFF34D399)) }
+                items(networkHistory.take(10)) { event ->
+                    DashboardCard("${event.transport} • sieci: ${event.activeNetworks}", Color(0xFF34D399)) {
+                        Text(
+                            "Zweryfikowana: ${if (event.validated) "tak" else "nie"} • " +
+                                "taryfikowana: ${if (event.metered) "tak" else "nie"} • " +
+                                "VPN: ${if (event.vpnPresent) "tak" else "nie"}",
+                            style = MaterialTheme.typography.bodySmall, color = Color(0xFFCBD5E1)
+                        )
                     }
                 }
             }
 
             if (alerts.isNotEmpty()) {
-                Text("Ostatnie alerty IOC", style = MaterialTheme.typography.titleMedium)
-                alerts.take(5).forEach { alert ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(10.dp)) {
-                            Text("${alert.type}: ${alert.indicator}", style = MaterialTheme.typography.bodyMedium)
-                            Text(alert.reason, style = MaterialTheme.typography.bodySmall)
-                        }
+                item { SectionTitle("Ostatnie alerty IOC", Color(0xFFFBBF24)) }
+                items(alerts.take(10)) { alert ->
+                    DashboardCard("${alert.type}: ${alert.indicator}", Color(0xFFFBBF24)) {
+                        Text(alert.reason, style = MaterialTheme.typography.bodySmall, color = Color(0xFFCBD5E1))
                     }
                 }
             }
 
-            Button(enabled = !busy, onClick = {
-                busy = true
-                status = "Skanowanie aplikacji i obliczanie SHA-256…"
-                scope.launch {
-                    try {
-                        val result = withContext(Dispatchers.IO) { AppScanner(context).scan() }
-                        findings = result
-                        ScanResultStore.save(context, result)
-                        history = ScanResultStore.loadHistory(context)
-                        val high = result.count { it.risk == RiskLevel.HIGH }
-                        val review = result.count { it.risk == RiskLevel.REVIEW }
-                        status = "Aplikacje: ${result.size} • HIGH: ${high} • REVIEW: ${review} • SAFE: ${result.size - high - review}"
-                        coach = "Cyber Coach: ${CyberCoach.advice(result)}"
-                        ThreatNotification.showHighRisk(context, high)
-                    } catch (e: Exception) {
-                        status = "Błąd skanowania: ${e.message ?: "nieznany błąd"}"
-                    } finally { busy = false }
-                }
-            }) { Text(if (busy) "Skanowanie…" else "Skanuj aplikacje") }
-            if (findings.isNotEmpty() || history.isNotEmpty()) {
-                LazyColumn(
-                    Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            item {
+                Button(
+                    enabled = !busy,
+                    onClick = {
+                        busy = true
+                        status = "Skanowanie aplikacji i obliczanie SHA-256…"
+                        scope.launch {
+                            try {
+                                val result = withContext(Dispatchers.IO) { AppScanner(context).scan() }
+                                findings = result
+                                ScanResultStore.save(context, result)
+                                history = ScanResultStore.loadHistory(context)
+                                val high = result.count { it.risk == RiskLevel.HIGH }
+                                val review = result.count { it.risk == RiskLevel.REVIEW }
+                                status = "Aplikacje: ${result.size} • HIGH: $high • REVIEW: $review • SAFE: ${result.size - high - review}"
+                                coach = "Cyber Coach: ${CyberCoach.advice(result)}"
+                                ThreatNotification.showHighRisk(context, high)
+                            } catch (e: Exception) {
+                                status = "Błąd skanowania: ${e.message ?: "nieznany błąd"}"
+                            } finally {
+                                busy = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
                 ) {
-                    if (findings.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Wyniki bieżącego skanu",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                        items(findings, key = { it.packageName }) { finding ->
-                            AppFindingCard(finding) { selected = finding }
-                        }
-                    }
-                    if (history.isNotEmpty()) {
-                        item {
-                            Text(
-                                "Historia skanów",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                        items(history.take(10)) { item -> ScanHistoryRow(item) }
-                    }
+                    Text(if (busy) "Skanowanie…" else "Skanuj aplikacje")
                 }
             }
+
+            if (findings.isNotEmpty()) {
+                item { SectionTitle("Wyniki bieżącego skanu", Color(0xFF60A5FA)) }
+                items(findings, key = { it.packageName }) { finding ->
+                    AppFindingCard(finding) { selected = finding }
+                }
+            }
+
+            if (history.isNotEmpty()) {
+                item { SectionTitle("Historia skanów", Color(0xFF818CF8)) }
+                items(history.take(10)) { item -> ScanHistoryRow(item) }
+            }
+
+            item { Spacer(Modifier.height(24.dp)) }
         }
-        selected?.let { finding ->
-            AlertDialog(onDismissRequest = { selected = null }, title = { Text(finding.label) },
-                text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    }
+
+    selected?.let { finding ->
+        AlertDialog(
+            onDismissRequest = { selected = null },
+            title = { Text(finding.label) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Ryzyko: ${finding.risk}")
                     Text("Pakiet: ${finding.packageName}")
                     Text("Wersja: ${finding.versionName ?: "brak"}")
                     Text("SHA-256: ${finding.apkSha256 ?: "niedostępny"}")
                     Text("Powody: ${finding.reasons.joinToString("; ")}")
                     Text("Uprawnienia: ${finding.permissions.size}")
-                }},
-                confirmButton = { TextButton(onClick = { selected = null }) { Text("Zamknij") } })
+                }
+            },
+            confirmButton = { TextButton(onClick = { selected = null }) { Text("Zamknij") } }
+        )
+    }
+}
+
+@Composable
+private fun DashboardCard(title: String, accent: Color, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF111C30)),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(Modifier.fillMaxWidth()) {
+            Box(
+                Modifier.width(5.dp).heightIn(min = 76.dp)
+                    .clip(RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
+                    .background(accent)
+            )
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White)
+                content()
+            }
         }
+    }
+}
+
+@Composable
+private fun SectionTitle(title: String, accent: Color) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            Modifier.width(4.dp).height(24.dp)
+                .clip(RoundedCornerShape(4.dp)).background(accent)
+        )
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Color.White)
     }
 }
 
